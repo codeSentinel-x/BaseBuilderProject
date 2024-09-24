@@ -1,4 +1,6 @@
+using System;
 using MyUtils;
+using MyUtils.Classes;
 using UnityEngine;
 
 [RequireComponent(typeof(MeshCollider), typeof(MeshFilter), typeof(MeshRenderer))]
@@ -11,8 +13,19 @@ public class GridSystem : MonoBehaviour {
     public Material _material;
     public Material[] _materials;
     public Grid<GameObject> _grid;
+    public NoiseSettingData _noiseData;
     void Awake() {
         _grid = new(_gridSize, _cellSize, 16);
+        NoiseGeneration.GenerateNoiseMap(_noiseData, Vector2Int.zero, (x, y) => OnNoiseMapGenerated(x, y));
+    }
+
+    public void OnNoiseMapGenerated(float[,] _data, Vector2Int offset) {
+        for (int x = 0; x < _gridSize.x; x++) {
+            for (int z = 0; z < _gridSize.y; z++) {
+                float v = _data[x, z];
+                _grid.GetGridCell(x, z)._uvPos = new Vector2(v / 4, z % 4);
+            }
+        }
         CreateMesh();
     }
     public void CreateMesh() {
@@ -59,7 +72,6 @@ public class GridSystem : MonoBehaviour {
     }
 
 }
-
 public class Grid<T> {
     public GridCell<T>[,] _cells;
     public float _cellSize;
@@ -70,7 +82,6 @@ public class Grid<T> {
         _cellSize = cSize;
 
         _cells = new GridCell<T>[_gridSize.x, _gridSize.y];
-
         for (int x = 0; x < _gridSize.x; x++) {
             for (int z = 0; z < _gridSize.y; z++) {
                 _cells[x, z] = new GridCell<T>() { _pos = GetWorldPos(x, z) + new Vector3(_cellSize, 0, _cellSize) * 0.5f, _h = (x) % 16 };

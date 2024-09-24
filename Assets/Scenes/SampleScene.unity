@@ -1036,12 +1036,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56d0f0fa744e0ef0a84ad6f949e45bc0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _gridSize: {x: 30, y: 30}
+  _gridSize: {x: 100, y: 100}
   _cellSize: 1
   _col: {fileID: 0}
   _mesh: {fileID: 0}
   _material: {fileID: 2100000, guid: efad77c8d9cc05ff488af7aea0c369a5, type: 2}
   _materials: []
+  _noiseData:
+    _settings:
+      _weightedNoiseSettings:
+      - _noiseSetting:
+          _scale: 100
+          _octaves: 5
+          _persistance: 0.5
+          _lacunarity: 2
+        _weight: 1
+      _chunkSize: 100
+      _chunkRenderDistance: 1
+    _environmentNoise:
+      _scale: 0
+      _octaves: 0
+      _persistance: 0
+      _lacunarity: 0
+    _seed: 8546
 --- !u!23 &1304632599
 MeshRenderer:
   m_ObjectHideFlags: 0

@@ -40,7 +40,7 @@ namespace MyUtils {
 
             triangles[tI + 0] = vI0;
             triangles[tI + 1] = vI3;
-            triangles[tI + 2] = vI1;  
+            triangles[tI + 2] = vI1;
 
             triangles[tI + 3] = vI1;
             triangles[tI + 4] = vI3;
