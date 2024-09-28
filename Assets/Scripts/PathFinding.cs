@@ -1,0 +1,164 @@
+using System.Collections.Generic;
+using System.Linq;
+using MyUtils.Classes;
+using Unity.Collections;
+using Unity.Mathematics;
+using Unity.VisualScripting;
+using UnityEngine;
+
+public class PathFinding {
+
+    public const int DIAGONAL_COST = 15;
+    public const int STRAIGHT_COST = 10;
+
+    public int _gridSize;
+    public GridCell[,] _cells;
+    public NativeList<int> _openList;
+    public NativeList<int> _closedList;
+    NativeArray<PathfindingCellItem> gridOfCellItem;
+
+    public PathFinding(Grid grid) {
+        _gridSize = grid._cells.GetLength(0);
+        _cells = grid._cells;
+        gridOfCellItem = new(_gridSize * _gridSize, Allocator.Persistent);
+    }
+    public NativeList<int> FindPath(int2 startPos, int2 endPos) {
+
+        NativeArray<PathfindingCellItem> gridOfCellItem = new(_gridSize * _gridSize, Allocator.Persistent);
+
+        for (int x = 0; x < _gridSize; x++) {
+            for (int y = 0; y < _gridSize; y++) {
+                int pos = x * _gridSize + y;
+                var p = new PathfindingCellItem() {
+                    _isWalkable = _cells[x, y]._isWalkable,
+                    _index = pos,
+                    _previousIndex = -1,
+                    _gCost = int.MaxValue,
+                    _hCost = CalculateDistance(new int2(x, y), new int2(endPos.x, endPos.y)),
+
+                };
+                p.CalculateFCost();
+                gridOfCellItem[pos] = p;
+            }
+        }
+
+        PathfindingCellItem startCell = gridOfCellItem[CalculateIndex(startPos.x, startPos.y, _gridSize)];
+        startCell._gCost = 0;
+        startCell._hCost = CalculateDistance(new int2(startCell._x, startCell._y), new int2(endPos.x, endPos.y));
+        startCell.CalculateFCost();
+        gridOfCellItem[startCell._index] = startCell;
+        NativeArray<int2> neighborsIndexPos = new(new int2[]{
+            new(0 , 1),
+            new(1 , 1),
+            new(1,0),
+            new(0,-1),
+            new(-1,-1),
+            new(-1,0),
+            new(-1,1),
+            new(1,-1),
+        }, Allocator.Temp);
+
+        _openList = new() { startCell._index };
+        _closedList = new();
+
+        int endIndex = GetNode(endPos.x, endPos.y)._index;
+
+        while (!_openList.IsEmpty) {
+            int current = GetLowestFCost(gridOfCellItem, _openList);
+            PathfindingCellItem item = gridOfCellItem[current];
+            if (current == endIndex) {
+                return CalculatePath(item);
+            }
+            _openList.RemoveAtSwapBack(current);
+            _closedList.Add(current);
+
+            for (int i = 0; i < _openList.Length; i++) {
+                if (_openList[i] == current) {
+                    _openList.RemoveAtSwapBack(i);
+                    break;
+                }
+            }
+
+            for (int i = 0; i < neighborsIndexPos.Length; i++) {
+                int2 neighborOffset = neighborsIndexPos[i];
+                int2 neighborPos = new(item._x + neighborOffset.x, item._y + neighborOffset.y);
+                if (!IsInGridBounds(neighborPos)) {
+                    continue;
+                }
+            }
+            if (_closedList.Contains(cell)) continue;
+
+            if (!cell._isWalkable) {
+                _closedList.Add(cell);
+                continue;
+            }
+            int tentativeCost = current._gCost + CalculateDistance(current, cell);
+            if (tentativeCost < cell._gCost) {
+                // cell._previous = current;
+                cell._gCost = tentativeCost;
+                cell._hCost = CalculateDistance(cell, endPos);
+                cell.CalculateFCost();
+            }
+            if (!_openList.Contains(cell)) _openList.Add(cell);
+        }
+
+        return default;
+
+
+    }
+    private bool IsInGridBounds(int2 pos) {
+        return pos.x >= 0 && pos.y >= 0 && pos.x < _gridSize && pos.y < _gridSize;
+    }
+    private List<PathfindingCellItem> GetNeighborList(PathfindingCellItem currentNode) {
+        List<PathfindingCellItem> neighborList = new();
+        if (currentNode._x - 1 >= 0) {
+            neighborList.Add(GetNode(currentNode._x - 1, currentNode._y));
+            if (currentNode._y - 1 >= 0) neighborList.Add(GetNode(currentNode._x - 1, currentNode._y - 1));
+            if (currentNode._y + 1 < _gridSize) neighborList.Add(GetNode(currentNode._x - 1, currentNode._y + 1));
+        }
+        if (currentNode._x + 1 < _gridSize) {
+            neighborList.Add(GetNode(currentNode._x + 1, currentNode._y));
+            if (currentNode._y - 1 >= 0) neighborList.Add(GetNode(currentNode._x + 1, currentNode._y - 1));
+            if (currentNode._y + 1 < _gridSize) neighborList.Add(GetNode(currentNode._x + 1, currentNode._y + 1));
+        }
+        if (currentNode._y - 1 >= 0) neighborList.Add(GetNode(currentNode._x, currentNode._y - 1));
+        if (currentNode._y + 1 < _gridSize) neighborList.Add(GetNode(currentNode._x, currentNode._y + 1));
+        return neighborList;
+    }
+
+    private PathfindingCellItem GetNode(int x, int y) {
+        return gridOfCellItem[x * _gridSize + y];
+    }
+
+    private NativeList<int> CalculatePath(PathfindingCellItem node) {
+        NativeList<int> path = new(Allocator.Temp) {
+             node._index,
+         };
+        PathfindingCellItem current = node;
+        while (current._previousIndex != -1) {
+            path.Add(current._previousIndex);
+            current = gridOfCellItem[current._previousIndex];
+        }
+        path.Reverse();
+        return path;
+
+    }
+    public int CalculateIndex(int x, int y, int length) {
+        return x * length + y;
+    }
+    private int CalculateDistance(int2 a, int2 b) {
+        int xDist = Mathf.Abs(a.x - b.x);
+        int yDist = Mathf.Abs(a.y - b.y);
+        int remain = Mathf.Abs(xDist - yDist);
+        return DIAGONAL_COST * Mathf.Min(xDist, yDist) + STRAIGHT_COST * remain;
+    }
+    private int GetLowestFCost(NativeArray<PathfindingCellItem> pathNodes, NativeList<int> openList) {
+        PathfindingCellItem lowestF = pathNodes[openList[0]];
+        for (int i = 0; i < pathNodes.Length; i++) {
+            if (pathNodes[openList[i]]._fCost < lowestF._fCost) lowestF = pathNodes[openList[i]];
+        }
+        return lowestF._index;
+
+    }
+}
+

@@ -20,6 +20,7 @@ public static class NoiseGeneration {
 
 
     public static void GenerateNoiseMap(NoiseSettingData data, Vector2Int offset, Action<float[,], Vector2Int> callback) {
+        _chunkSize = data._settings._chunkSize;
         var chunkSize = _chunkSize;
         float[,] finalResult = new float[chunkSize, chunkSize];
         NativeList<JobHandle> allJobs = new(Allocator.Temp);
@@ -45,8 +46,8 @@ public static class NoiseGeneration {
         JobHandle.CompleteAll(allJobs);
 
         // Debug.Log(weightedNoiseSettings.Length);
-        for (int x = 0; x < finalResult.GetLength(1); x++) {
-            for (int y = 0; y < finalResult.GetLength(2); y++) {
+        for (int x = 0; x < finalResult.GetLength(0); x++) {
+            for (int y = 0; y < finalResult.GetLength(1); y++) {
                 var arrayPos = x + chunkSize * y;
                 finalResult[x, y] = noiseResults[arrayPos];
             }
@@ -165,7 +166,7 @@ public static class NoiseGeneration {
             }
 
             float maxNoiseH = float.MinValue;
-            float minNoiseH = float.MaxValue;   
+            float minNoiseH = float.MaxValue;
 
             for (int y = 0; y < mapSize; y++) {
                 for (int x = 0; x < mapSize; x++) {

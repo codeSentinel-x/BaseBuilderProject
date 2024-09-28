@@ -1,20 +1,23 @@
-using System;
 using MyUtils;
 using MyUtils.Classes;
 using UnityEngine;
 
 [RequireComponent(typeof(MeshCollider), typeof(MeshFilter), typeof(MeshRenderer))]
 public class GridSystem : MonoBehaviour {
-
+    public static GridSystem _I;
     public Vector2Int _gridSize;
     public float _cellSize;
     public MeshCollider _col;
     public Mesh _mesh;
     public Material _material;
     public Material[] _materials;
-    public Grid<GameObject> _grid;
+    public Grid _grid;
     public NoiseSettingData _noiseData;
     void Awake() {
+        _I = this;
+        GenerateWorld();
+    }
+    public void GenerateWorld() {
         _grid = new(_gridSize, _cellSize, 16);
         NoiseGeneration.GenerateNoiseMap(_noiseData, Vector2Int.zero, (x, y) => OnNoiseMapGenerated(x, y));
     }
@@ -22,8 +25,8 @@ public class GridSystem : MonoBehaviour {
     public void OnNoiseMapGenerated(float[,] _data, Vector2Int offset) {
         for (int x = 0; x < _gridSize.x; x++) {
             for (int z = 0; z < _gridSize.y; z++) {
-                float v = _data[x, z];
-                _grid.GetGridCell(x, z)._uvPos = new Vector2(v / 4, z % 4);
+                float v = Mathf.FloorToInt(Mathf.Clamp01(_data[x, z]) * 16);
+                _grid.GetGridCell(x, z)._uvPos = new Vector2((v / 4) / 4, (v % 4) / 4);
             }
         }
         CreateMesh();
@@ -72,8 +75,8 @@ public class GridSystem : MonoBehaviour {
     }
 
 }
-public class Grid<T> {
-    public GridCell<T>[,] _cells;
+public class Grid {
+    public GridCell[,] _cells;
     public float _cellSize;
     public Vector2Int _gridSize;
 
@@ -81,10 +84,10 @@ public class Grid<T> {
         _gridSize = gSize;
         _cellSize = cSize;
 
-        _cells = new GridCell<T>[_gridSize.x, _gridSize.y];
+        _cells = new GridCell[_gridSize.x, _gridSize.y];
         for (int x = 0; x < _gridSize.x; x++) {
             for (int z = 0; z < _gridSize.y; z++) {
-                _cells[x, z] = new GridCell<T>() { _pos = GetWorldPos(x, z) + new Vector3(_cellSize, 0, _cellSize) * 0.5f, _h = (x) % 16 };
+                _cells[x, z] = new GridCell() { _pos = GetWorldPos(x, z) + new Vector3(_cellSize, 0, _cellSize), _h = (x) % 16 };
                 _cells[x, z].CalculateUvPosition();
                 Debug.DrawLine(GetWorldPos(x, z), GetWorldPos(x + 1, z), Color.white, 100f);
                 Debug.DrawLine(GetWorldPos(x, z), GetWorldPos(x, z + 1), Color.white, 100f);
@@ -100,31 +103,43 @@ public class Grid<T> {
     public Vector3 GetWorldPos(int x, int z) {
         return new Vector3(x, 0, z) * _cellSize;
     }
-    public GridCell<T> GetGridCell(Vector3 pos) {
+    public GridCell GetGridCell(Vector3 pos) {
         return _cells[(int)pos.x, (int)pos.z];
     }
-    public GridCell<T> GetGridCell(int x, int z) {
+    public GridCell GetGridCell(int x, int z) {
         return _cells[x, z];
     }
     public int GetCellH(int x, int z) {
         return _cells[x, z]._h;
     }
-    public Vector2 GetCellUvPos(int x, int z) {
+    public Vector2 CalculateCellUV(int x, int z) {
         Vector2 uvPos = new(Mathf.InverseLerp(0, 4, _cells[x, z]._uvPos.x), Mathf.InverseLerp(0, 4, _cells[x, z]._uvPos.y));
         uvPos += new Vector2(0.1f, 0.1f);
-        Debug.Log($"uvPos for x = {x} and z = {z} = {uvPos}");
+        // Debug.Log($"uvPos for x = {x} and z = {z} = {uvPos}");
         return uvPos;
     }
+    public Vector2 GetCellUvPos(int x, int z) {
+        return _cells[x, z]._uvPos;
+    }
 }
-public class GridCell<T> {
+public class GridCell {
     public Vector3 _pos;
-    public T _content;
+    public CellContent _content;
     public int _h;
     public Vector2 _uvPos;
+    public bool _isEmpty;
+    public bool _isWalkable;
     public void CalculateUvPosition() {
         int hX = _h / 4;
         int hY = _h % 4;
-        Debug.Log($"UV x = {hX}, y = {hY} for _h = {_h}");
+        // Debug.Log($"UV x = {hX}, y = {hY} for _h = {_h}");
         _uvPos = new Vector2(hX, hY);
     }
+}
+public class CellContent {
+    public ContentType _type;
+
+}
+public enum ContentType {
+
 }

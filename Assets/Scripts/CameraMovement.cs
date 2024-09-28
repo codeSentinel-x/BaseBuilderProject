@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class CameraMovement : MonoBehaviour {
@@ -24,7 +22,7 @@ public class CameraMovement : MonoBehaviour {
     void Start() {
         newRotation = transform.rotation;
         newPosition = transform.position;
-        newZoom = cameraTransform.localPosition;
+        newZoom = cameraTransform.localPosition + new Vector3(0, 10, 0);
     }
 
     void Update() {
@@ -38,14 +36,14 @@ public class CameraMovement : MonoBehaviour {
             if (newZoom.y < 0) newZoom = Vector3.zero;
         }
         if (Input.GetMouseButtonDown(2)) {
-            Plane plane = new Plane(Vector3.up, Vector3.zero);
+            Plane plane = new(Vector3.up, Vector3.zero);
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (plane.Raycast(ray, out float entry)) {
                 dragStartPosition = ray.GetPoint(entry);
             }
         }
         if (Input.GetMouseButton(2)) {
-            Plane plane = new Plane(Vector3.up, Vector3.zero);
+            Plane plane = new(Vector3.up, Vector3.zero);
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (plane.Raycast(ray, out float entry)) {
                 dragCurrentPosition = ray.GetPoint(entry);
