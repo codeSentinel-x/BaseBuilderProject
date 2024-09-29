@@ -22,7 +22,7 @@ public class PathFinding {
         _cells = grid._cells;
         gridOfCellItem = new(_gridSize * _gridSize, Allocator.Persistent);
     }
-    public NativeList<int> FindPath(int2 startPos, int2 endPos) {
+    public NativeList<int2> FindPath(int2 startPos, int2 endPos) {
 
         NativeArray<PathfindingCellItem> gridOfCellItem = new(_gridSize * _gridSize, Allocator.Persistent);
 
@@ -85,25 +85,30 @@ public class PathFinding {
                 if (!IsInGridBounds(neighborPos)) {
                     continue;
                 }
-            }
-            if (_closedList.Contains(cell)) continue;
 
-            if (!cell._isWalkable) {
-                _closedList.Add(cell);
-                continue;
+                int neighborIndex = CalculateIndex(neighborPos.x, neighborPos.y, _gridSize);
+
+                if (_closedList.Contains(neighborIndex)) continue;
+                PathfindingCellItem neigh = gridOfCellItem[neighborIndex];
+                if (!neigh._isWalkable) {
+                    continue;
+                }
+                int tentativeCost = item._gCost + CalculateDistance(current, neighborPos);
+                if (tentativeCost < neigh._gCost) {
+                    neigh._previousIndex = current;
+                    neigh._gCost = tentativeCost;
+                    // neigh._hCost = CalculateDistance(neigh._index, endPos);   
+                    item.CalculateFCost();
+                    gridOfCellItem[neigh._index] = neigh;
+                }
+                if (!_openList.Contains(neigh._index)) _openList.Add(neigh._index);
+
             }
-            int tentativeCost = current._gCost + CalculateDistance(current, cell);
-            if (tentativeCost < cell._gCost) {
-                // cell._previous = current;
-                cell._gCost = tentativeCost;
-                cell._hCost = CalculateDistance(cell, endPos);
-                cell.CalculateFCost();
-            }
-            if (!_openList.Contains(cell)) _openList.Add(cell);
+
         }
 
+        neighborsIndexPos.Dispose();
         return default;
-
 
     }
     private bool IsInGridBounds(int2 pos) {
@@ -130,18 +135,22 @@ public class PathFinding {
         return gridOfCellItem[x * _gridSize + y];
     }
 
-    private NativeList<int> CalculatePath(PathfindingCellItem node) {
-        NativeList<int> path = new(Allocator.Temp) {
-             node._index,
-         };
-        PathfindingCellItem current = node;
-        while (current._previousIndex != -1) {
-            path.Add(current._previousIndex);
-            current = gridOfCellItem[current._previousIndex];
+    private NativeList<int2> CalculatePath(PathfindingCellItem endNode) {
+        if (endNode._previousIndex == -1) {
+            return new NativeList<int2>(Allocator.Temp);
+        } else {
+            NativeList<int2> path = new(Allocator.Temp) {
+             new int2(endNode._x,endNode._y)
+             };
+            PathfindingCellItem current = endNode;
+            while (current._previousIndex != -1) {
+                PathfindingCellItem previous = gridOfCellItem[current._previousIndex];
+                path.Add(new(previous._x, previous._y));
+                current = previous;
+            }
+            path.Reverse();
+            return path;
         }
-        path.Reverse();
-        return path;
-
     }
     public int CalculateIndex(int x, int y, int length) {
         return x * length + y;
