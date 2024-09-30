@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using MyUtils;
 using MyUtils.Classes;
+using Unity.Mathematics;
 using UnityEngine;
 
 [RequireComponent(typeof(MeshCollider), typeof(MeshFilter), typeof(MeshRenderer))]
@@ -13,6 +15,7 @@ public class GridSystem : MonoBehaviour {
     public Material[] _materials;
     public Grid _grid;
     public NoiseSettingData _noiseData;
+    public PathFinding _pathfinding;
     void Awake() {
         _I = this;
         GenerateWorld();
@@ -30,6 +33,7 @@ public class GridSystem : MonoBehaviour {
             }
         }
         CreateMesh();
+        _pathfinding = new PathFinding(_grid);
     }
     public void CreateMesh() {
         _mesh = new Mesh();
@@ -73,7 +77,6 @@ public class GridSystem : MonoBehaviour {
 
         mesh.uv = uvs;
     }
-
 }
 public class Grid {
     public GridCell[,] _cells;

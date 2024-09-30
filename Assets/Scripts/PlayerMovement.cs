@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour {
@@ -5,6 +7,7 @@ public class PlayerMovement : MonoBehaviour {
     public float _speed;
     Vector2Int _lastPosition;
     Vector3 _desiredPos;
+    List<int2> 
     void Awake() {
         _I = this;
     }
